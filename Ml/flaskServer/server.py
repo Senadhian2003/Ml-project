@@ -10,10 +10,8 @@ from sklearn.svm import SVC
 from sklearn.naive_bayes import GaussianNB
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, confusion_matrix
-from flask_cors import CORS,cross_origin
-from flask import request,jsonify
-
-
+from flask_cors import CORS, cross_origin
+from flask import request, jsonify
 
 
 app = Flask(__name__)
@@ -35,9 +33,11 @@ Original file is located at
 
 # Reading the train.csv by removing the
 # last column since it's an empty column
+
+
 def disease(name):
     DATA_PATH = "Training.csv.xls"
-    data = pd.read_csv(DATA_PATH).dropna(axis = 1)
+    data = pd.read_csv(DATA_PATH).dropna(axis=1)
 
     # Checking whether the dataset is balanced or not
     disease_counts = data["prognosis"].value_counts()
@@ -56,10 +56,10 @@ def disease(name):
     encoder = LabelEncoder()
     data["prognosis"] = encoder.fit_transform(data["prognosis"])
 
-    X = data.iloc[:,:-1]
+    X = data.iloc[:, :-1]
     y = data.iloc[:, -1]
-    X_train, X_test, y_train, y_test =train_test_split(
-    X, y, test_size = 0.2, random_state = 24)
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=24)
 
     # print(f"Train: {X_train.shape}, {y_train.shape}")
     # print(f"Test: {X_test.shape}, {y_test.shape}")
@@ -70,17 +70,17 @@ def disease(name):
 
     # Initializing Models
     models = {
-        "SVC":SVC(),
-        "Gaussian NB":GaussianNB(),
-        "Random Forest":RandomForestClassifier(random_state=18)
+        "SVC": SVC(),
+        "Gaussian NB": GaussianNB(),
+        "Random Forest": RandomForestClassifier(random_state=18)
     }
 
     # Producing cross validation score for the models
     for model_name in models:
         model = models[model_name]
-        scores = cross_val_score(model, X, y, cv = 10,
-                                n_jobs = -1,
-                                scoring = cv_scoring)
+        scores = cross_val_score(model, X, y, cv=10,
+                                 n_jobs=-1,
+                                 scoring=cv_scoring)
         # print("=="*30)
         # print(model_name)
         # print(f"Scores: {scores}")
@@ -153,8 +153,8 @@ def disease(name):
     nb_preds = final_nb_model.predict(test_X)
     rf_preds = final_rf_model.predict(test_X)
 
-    final_preds = [mode([i,j,k])[0][0] for i,j,
-                k in zip(svm_preds, nb_preds, rf_preds)]
+    final_preds = [mode([i, j, k])[0][0] for i, j,
+                   k in zip(svm_preds, nb_preds, rf_preds)]
 
     # print(f"Accuracy on Test dataset by the combined model\
     # : {accuracy_score(test_Y, final_preds)*100}")
@@ -176,8 +176,8 @@ def disease(name):
         symptom_index[symptom] = index
 
     data_dict = {
-        "symptom_index":symptom_index,
-        "predictions_classes":encoder.classes_
+        "symptom_index": symptom_index,
+        "predictions_classes": encoder.classes_
     }
 
     # Defining the Function
@@ -185,29 +185,33 @@ def disease(name):
     # Output: Generated predictions by models
     def predictDisease(symptoms):
         symptoms = symptoms.split(",")
-        
+
         # creating input data for the models
         input_data = [0] * len(data_dict["symptom_index"])
         for symptom in symptoms:
             index = data_dict["symptom_index"][symptom]
             input_data[index] = 1
-            
+
         # reshaping the input data and converting it
         # into suitable format for model predictions
-        input_data = np.array(input_data).reshape(1,-1)
-        
+        input_data = np.array(input_data).reshape(1, -1)
+
         # generating individual outputs
-        rf_prediction = data_dict["predictions_classes"][final_rf_model.predict(input_data)[0]]
-        nb_prediction = data_dict["predictions_classes"][final_nb_model.predict(input_data)[0]]
-        svm_prediction = data_dict["predictions_classes"][final_svm_model.predict(input_data)[0]]
-        
+        rf_prediction = data_dict["predictions_classes"][final_rf_model.predict(input_data)[
+            0]]
+        nb_prediction = data_dict["predictions_classes"][final_nb_model.predict(input_data)[
+            0]]
+        svm_prediction = data_dict["predictions_classes"][final_svm_model.predict(input_data)[
+            0]]
+
         # making final prediction by taking mode of all predictions
-        final_prediction = mode([rf_prediction, nb_prediction, svm_prediction])[0][0]
+        final_prediction = mode(
+            [rf_prediction, nb_prediction, svm_prediction])[0][0]
         predictions = {
             "rf_model_prediction": rf_prediction,
             "naive_bayes_prediction": nb_prediction,
             "svm_model_prediction": nb_prediction,
-            "final_prediction":final_prediction
+            "final_prediction": final_prediction
         }
         return predictions
 
@@ -215,23 +219,13 @@ def disease(name):
     return(predictDisease(name))
 
 
-
-
-
-
-
-
-    
-    
-    
-
-
-@app.route('/',methods = ["POST"])
+@app.route('/', methods=["POST"])
 @cross_origin(supports_credentials=True)
 def index():
     name = request.json["name"]
     print(name)
     return disease(name)
+
 
 if __name__ == "__main__":
     app.run(debug=True)
